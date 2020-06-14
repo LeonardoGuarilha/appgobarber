@@ -15,6 +15,8 @@ import * as Yup from 'yup';
 import { Form } from '@unform/mobile';
 import { FormHandles } from '@unform/core';
 
+import { useAuth } from '../../hooks/auth';
+
 import getValidationErros from '../../utils/getValidationErrors';
 
 import logoImg from '../../assets/logo.png';
@@ -41,47 +43,52 @@ const SignIn: React.FC = () => {
   // Crio uma ref para manipular um elemento de forma direta e não por algum evento
   const formRef = useRef<FormHandles>(null);
   const passwordInputRef = useRef<TextInput>(null);
-  const navigarion = useNavigation();
 
-  const handleSignIn = useCallback(async (data: SignInFormData) => {
-    try {
-      console.log(data);
-      formRef.current?.setErrors({});
-      // Validação dos dados do form que vem pelo data
-      const schema = Yup.object().shape({
-        email: Yup.string()
-          .required('E-mail obrogatório')
-          .email('Digite um e-mail válido'),
-        password: Yup.string().required('Senha obrigatória'),
-      });
+  const navigation = useNavigation();
 
-      await schema.validate(data, {
-        abortEarly: false,
-      });
+  const { signIn, user } = useAuth();
 
-      // await signIn({
-      //   email: data.email,
-      //   password: data.password,
-      // });
+  // console.log(user);
 
-      // Para fazer o redirecionamento por dentro do componente, sem precisar usar o Link
-      // history.push('/dashboard');
-    } catch (err) {
-      if (err instanceof Yup.ValidationError) {
-        const erros = getValidationErros(err);
-        // console.log(err);
-        formRef.current?.setErrors(erros);
-        console.log(erros);
+  const handleSignIn = useCallback(
+    async (data: SignInFormData) => {
+      try {
+        console.log(data);
+        formRef.current?.setErrors({});
+        // Validação dos dados do form que vem pelo data
+        const schema = Yup.object().shape({
+          email: Yup.string()
+            .required('E-mail obrogatório')
+            .email('Digite um e-mail válido'),
+          password: Yup.string().required('Senha obrigatória'),
+        });
 
-        return;
+        await schema.validate(data, {
+          abortEarly: false,
+        });
+
+        await signIn({
+          email: data.email,
+          password: data.password,
+        });
+      } catch (err) {
+        if (err instanceof Yup.ValidationError) {
+          const erros = getValidationErros(err);
+          // console.log(err);
+          formRef.current?.setErrors(erros);
+          console.log(erros);
+
+          return;
+        }
+
+        Alert.alert(
+          'Erro na autenticação',
+          'Ocorreu um erro ao fazer login, verifique as credenciais'
+        );
       }
-
-      Alert.alert(
-        'Erro na autenticação',
-        'Ocorreu um erro ao fazer login, verifique as credenciais'
-      );
-    }
-  }, []);
+    },
+    [signIn]
+  );
 
   return (
     <>
@@ -145,7 +152,7 @@ const SignIn: React.FC = () => {
 
       <CreateAccountButton
         onPress={() => {
-          navigarion.navigate('SignUp');
+          navigation.navigate('SignUp');
         }}
       >
         <Icon name="log-in" size={20} color="#ff9000" />
