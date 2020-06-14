@@ -6,12 +6,16 @@ import {
   Platform,
   ScrollView,
   TextInput,
+  Alert,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 import { useNavigation } from '@react-navigation/native';
+import * as Yup from 'yup';
 
 import { Form } from '@unform/mobile';
 import { FormHandles } from '@unform/core';
+
+import getValidationErros from '../../utils/getValidationErrors';
 
 import logoImg from '../../assets/logo.png';
 
@@ -27,6 +31,11 @@ import {
   CreateAccountButtonText,
 } from './styles';
 
+interface SignInFormData {
+  email: string;
+  password: string;
+}
+
 const SignIn: React.FC = () => {
   // Pegar a referência do form
   // Crio uma ref para manipular um elemento de forma direta e não por algum evento
@@ -34,8 +43,44 @@ const SignIn: React.FC = () => {
   const passwordInputRef = useRef<TextInput>(null);
   const navigarion = useNavigation();
 
-  const handleSignIn = useCallback((data: object) => {
-    console.log(data);
+  const handleSignIn = useCallback(async (data: SignInFormData) => {
+    try {
+      console.log(data);
+      formRef.current?.setErrors({});
+      // Validação dos dados do form que vem pelo data
+      const schema = Yup.object().shape({
+        email: Yup.string()
+          .required('E-mail obrogatório')
+          .email('Digite um e-mail válido'),
+        password: Yup.string().required('Senha obrigatória'),
+      });
+
+      await schema.validate(data, {
+        abortEarly: false,
+      });
+
+      // await signIn({
+      //   email: data.email,
+      //   password: data.password,
+      // });
+
+      // Para fazer o redirecionamento por dentro do componente, sem precisar usar o Link
+      // history.push('/dashboard');
+    } catch (err) {
+      if (err instanceof Yup.ValidationError) {
+        const erros = getValidationErros(err);
+        // console.log(err);
+        formRef.current?.setErrors(erros);
+        console.log(erros);
+
+        return;
+      }
+
+      Alert.alert(
+        'Erro na autenticação',
+        'Ocorreu um erro ao fazer login, verifique as credenciais'
+      );
+    }
   }, []);
 
   return (
